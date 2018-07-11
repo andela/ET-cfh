@@ -12,6 +12,8 @@ module.exports = (config) => {
 
     // list of files / patterns to load in the browser
     files: [
+      'public/lib/jquery/jquery.min.js',
+      'public/lib/materialize/js/materialize.min.js',
       'public/lib/angular/angular.js',
       'public/lib/angular-mocks/angular-mocks.js',
       'public/js/**/*.js',
@@ -40,13 +42,10 @@ module.exports = (config) => {
     colors: true,
 
     // level of logging
-    // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
+    // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || 
+    // config.LOG_INFO || config.LOG_DEBUG
     logLevel: config.LOG_INFO,
 
-    // // enable / disable watching file and executing tests whenever any file changes
-    // autoWatch: true,
-
-    // plugins: ['karma-phantomjs-launcher', 'karma-jasmine'],
 
     // start these browsers
     // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher

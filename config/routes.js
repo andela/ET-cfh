@@ -11,7 +11,10 @@ export default (router, passport, app) => {
   const api = Router();
   api
     .post('/auth/login', users.handleLogin)
-    .post('/auth/signup', users.handleSignUp);
+    .post('/auth/signup', users.handleSignUp)
+    .get('/users/findUsers/:searchKey', middleware.auth, users.findUsers)
+    .get('/users/findUsers/', middleware.auth, users.findUsers)
+    .post('/users/invite', middleware.auth, users.invite);
 
   router.get('/signin', users.signin);
   router.get('/signup', users.signup);
@@ -21,9 +24,6 @@ export default (router, passport, app) => {
   // Setting up the users api
   router.post('/users', users.create);
   router.post('/users/avatars', users.avatars);
-  router.get('/users/findUsers/:searchKey', middleware.auth, users.findUsers);
-  router.get('/users/findUsers/', middleware.auth, users.findUsers);
-  router.post('/users/invite', middleware.auth, users.invite);
 
   // Donation Routes
   router.post('/donations', users.addDonation);
