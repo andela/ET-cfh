@@ -4,13 +4,17 @@ import * as answers from '../app/controllers/answers';
 import questions from '../app/controllers/questions';
 import avatars from '../app/controllers/avatars';
 import index from '../app/controllers/index';
+import middleware from '../app/middleware/auth';
 
 export default (router, passport, app) => {
   // api name spaced routes;
   const api = Router();
   api
     .post('/auth/login', users.handleLogin)
-    .post('/auth/signup', users.handleSignUp);
+    .post('/auth/signup', users.handleSignUp)
+    .get('/users/findUsers/:searchKey', middleware.auth, users.findUsers)
+    .get('/users/findUsers/', middleware.auth, users.findUsers)
+    .post('/users/invite', middleware.auth, users.invite);
 
   router.get('/signin', users.signin);
   router.get('/signup', users.signup);
