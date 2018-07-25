@@ -13,9 +13,52 @@ import Services from '../logic/user';
 
 const { handleFetchProfile } = Services;
 
-
 const avatarsArray = avatarsList();
 const User = mongoose.model('User');
+
+/**
+ * @param {user} user the user whose friend list and
+ * friend request list will be searched
+ * @param {*} id the id of the finder
+ * @description this method verifies the friendship status between a
+ * finder and the user that is found. Friendship status
+ * can be friends, not friends, or pending
+ */
+const checkIfFriends = (user, id) => {
+  let friends = 'not friends';
+  friends = user.friend_requests.indexOf(mongoose.Types.ObjectId(id)) > -1
+    ? 'pending' : friends;
+  friends = user.friends.indexOf(mongoose.Types.ObjectId(id)) > -1
+    ? 'friends' : friends;
+  return friends;
+};
+
+/**
+ * @param {users} users the list of all returned users
+ * @description this function takes a list of users from the database,
+ * removes the sensitive fields and returns the list of users
+ */
+const cleanUpUsers = (users = [], _id) => users.map(user => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  avatar: user.avatar
+  || 'https://assets.hotukdeals.com/assets/img/profile-placeholder_f56af.png',
+  friends: checkIfFriends(user, _id),
+}));
+
+/**
+ * @param {users} users the list of all returned users
+ * @description this function takes a list of users from the database,
+ * removes the sensitive fields and returns the list of users
+ */
+const cleanUpFriends = users => users.map(user => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  avatar: user.avatar
+  || 'https://assets.hotukdeals.com/assets/img/profile-placeholder_f56af.png',
+}));
 
 // disabling no underscore because of the default style of mongoose ids
 /* eslint no-underscore-dangle: 0, valid-jsdoc: 0 */
@@ -38,7 +81,8 @@ const authCallback = (req, res) => {
  * @param {res} res handles response status code and messages
  * @returns {res} a status code and data
  * @description this function is called with an Oauth 2 authentication is complete
- * the authentication returns a user which info is sent to the client through the url.
+ * the authentication returns a user which
+ * info is sent to the client through the url.
  */
 const signin = (req, res) => {
   if (!req.user) {
@@ -82,7 +126,8 @@ const handleLogin = (req, res, next) => {
  * @param {object} res - response object provided by express
  * @param {function} next - next function for passing the request to next handler
  * @description Controller for handling requests to '/api/auth/signup',
- * returns the token of the user on signup, users Tokenizer to generate the token as well.
+ * returns the token of the user on signup,
+ * users Tokenizer to generate the token as well.
 */
 const handleSignUp = (req, res, next) => {
   // there has to be the email, username and password
@@ -126,7 +171,8 @@ const handleSignUp = (req, res, next) => {
  * @param {object} req - request object provided by express
  * @param {object} res - response object provided by express
  * @param {function} next - next function for passing the request to next handler
- * @description controller for handling requests to get the user profile, expects that a token
+ * @description controller for handling requests to get
+ * the user profile, expects that a token
  *  has been decoded and payload appended to the request object
 */
 const fetchProfile = (req, res, next) => handleFetchProfile(req.user._id)
@@ -141,7 +187,8 @@ const fetchProfile = (req, res, next) => handleFetchProfile(req.user._id)
 /**
  * @param {object} req - request object from OAUTH callback
  * @param {object} res - request object provided by express
- * @description This action generates a token after a successful oauth login and sends the token
+ * @description This action generates a token after
+ * a successful oauth login and sends the token
  * the client to be used for subsequent requests.
  */
 
@@ -235,7 +282,8 @@ const create = (req, res, next) => {
 /**
  * @param {object} req - request object provided by express
  * @param {object} res - response object provided by express
- * @description controller handling uploading choosing avatars on POST '/api/users/avatars'
+ * @description controller handling uploading
+ * choosing avatars on POST '/api/users/avatars'
 */
 const avatars = (req, res) => {
   // Update the current user's profile to include the avatar choice they've made
@@ -256,7 +304,8 @@ const avatars = (req, res) => {
 /**
  * @param {object} req - request object provided by express
  * @param {object} res - response object provided by express
- * @description controller handling the new donations request on POST '/api/donations',
+ * @description controller handling the new donations request
+ * on POST '/api/donations',
  * expects that the request body contains crowdrise data, and the amount.
 */
 const addDonation = (req, res) => {
@@ -354,8 +403,9 @@ const updateUserTour = (req, res, next) => {
  * that match the key. It search the name and email only.
 */
 const findUsers = (req, res) => {
-  const { searchKey } = req.params;
+  const { searchKey, _id } = req.params;
   User.find({
+    _id: { $ne: _id },
     $and:
     [
       {
@@ -366,7 +416,7 @@ const findUsers = (req, res) => {
         ]
       }
     ]
-  }, (err, users) => res.status(200).send({ users }));
+  }, (err, users) => res.status(200).send({ users: cleanUpUsers(users, _id) }));
 };
 
 
@@ -384,6 +434,110 @@ const invite = (req, res) => {
   return res.status(400).send({ message: 'An error occurred while sending the invitation' });
 };
 
+/**
+ * @param {object} req - request object provided by express
+ * @param {object} res - response object provided by express
+ * @description retrieves all friends and friend request a user has
+*/
+const getFriends = (req, res, next) => {
+  const { userId } = req.params;
+  User.findById(userId).populate('friends')
+    .populate('friend_requests').exec((error, currentUser) => {
+      if (error) {
+        return next(error);
+      }
+      return res.status(200).send({
+        friends: cleanUpFriends(currentUser.friends),
+        friendRequests: cleanUpFriends(currentUser.friend_requests)
+      });
+    });
+};
+
+/**
+ * @param {object} req - request object provided by express
+ * @param {object} res - response object provided by express
+ * @description accepts a friend request by
+ * adding both parties to each other's record
+*/
+const acceptRequest = (req, res, next) => {
+  const { userId } = req.params;
+  const { id } = req.body;
+  User.update({ _id: userId },
+    { $push: { friends: id }, $pull: { friend_requests: id } },
+    (err) => {
+      if (err) {
+        return next(err);
+      }
+      User.update({ _id: id },
+        { $push: { friends: userId }, $pull: { friend_requests: userId } },
+        (err) => {
+          if (err) {
+            return next(err);
+          }
+          res.status(200).send({ message: 'Friend request accepted' });
+        });
+    });
+};
+
+/**
+ * @param {object} req - request object provided by express
+ * @param {object} res - response object provided by express
+ * @description unfriend user by deleting both parties form each other's record
+*/
+const unfriendUser = (req, res, next) => {
+  const { userId } = req.params;
+  const { id } = req.body;
+  User.update({ _id: userId },
+    { $pull: { friends: id } },
+    (err) => {
+      if (err) {
+        return next(err);
+      }
+      User.update({ _id: id },
+        { $pull: { friends: userId } },
+        (err) => {
+          if (err) {
+            return next(err);
+          }
+          res.status(200).send({ message: 'Friend removed' });
+        });
+    });
+};
+
+/**
+ * @param {object} req - request object provided by express
+ * @param {object} res - response object provided by express
+ * @description decline friend request by deleting request from receivers record
+*/
+const declineRequest = (req, res, next) => {
+  const { userId } = req.params;
+  const { id } = req.body;
+  User.update({ _id: userId },
+    { $pull: { friend_requests: id } },
+    (err) => {
+      if (err) {
+        return next(err);
+      }
+      res.status(200).send({ message: 'Friend request declined' });
+    });
+};
+
+/**
+ * @param {object} req - request object provided by express
+ * @param {object} res - response object provided by express
+ * @description get the number of friend requests a friend has
+*/
+const getRequestCount = (req, res, next) => {
+  const { userId } = req.params;
+  User.findById(userId).exec((error, currentUser) => {
+    if (error) {
+      return next(error);
+    }
+    return res.status(200).send({
+      length: currentUser.friend_requests.length,
+    });
+  });
+};
 
 export default {
   authCallback,
@@ -402,5 +556,10 @@ export default {
   handleSignUp,
   avatars,
   findUsers,
-  invite
+  invite,
+  getFriends,
+  acceptRequest,
+  unfriendUser,
+  declineRequest,
+  getRequestCount
 };

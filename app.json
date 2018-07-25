@@ -1,8 +1,15 @@
 {
   "name": "ET-cfh",
   "scripts": {
+    "postdeploy": "heroku config:set HOST_NAME=${HEROKU_APP_NAME}.herokuapp.com --app ${HEROKU_APP_NAME}"
   },
   "env": {
+    "HEROKU_APP_NAME": {
+      "required": true
+    },
+    "HEROKU_PARENT_APP_NAME": {
+        "required": true
+    },
     "MONGODB_URI": {
       "required": true
     },
@@ -61,6 +68,9 @@
     "mongolab"
   ],
   "buildpacks": [
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-cli"
+    },
     {
       "url": "heroku/nodejs"
     }
