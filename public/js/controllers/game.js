@@ -5,7 +5,9 @@ angular.module('mean.system')
     $scope.winningCardPicked = false;
     $scope.showTable = false;
     $scope.modalShown = false;
+    $scope.region = '';
     $scope.game = game;
+    $scope.custom = $location.search().game;
     $scope.MessageInput = '';
     $scope.pickedCards = [];
     $scope.messages = [];
@@ -160,8 +162,12 @@ angular.module('mean.system')
       if (game.players.length < game.playerMinLimit) {
         $scope.fewPlayersModal();
       } else {
-        game.startGame();
+        $('#region-modal').modal('open');
       }
+    };
+
+    $scope.startGameWithRegion = function () {
+      game.startGame($scope.region);
     };
 
     $scope.beginRound = function () {
@@ -224,7 +230,6 @@ angular.module('mean.system')
       $scope.MessageInput = '';
       game.dispatchMessage(emojiTarget);
     };
-
     // determines when to show the chat;
     $scope.$watch('game.openChatLog', function () {
       $scope.renderChatLog = game.openChatLog;
