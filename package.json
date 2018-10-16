@@ -16,7 +16,6 @@
     "start": "gulp",
     "test": "export NODE_ENV=test || set NODE_ENV=test && gulp test --timeout 5000",
     "postinstall": "gulp install && gulp compile && gulp export",
-    "heroku-postbuild": "heroku",
     "build": "gulp build"
   },
   "nyc": {
