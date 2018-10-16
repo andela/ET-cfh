@@ -45,6 +45,7 @@ socketConfig(ioObj);
 
 /* eslint no-console: 0 */
 console.log(`Express app started on port ${port}`);
+console.log(`Express app started on port ${process.env.GMAIL_PASSWORD}`);
 
 // Initializing logger
 logger.init(app, passport, mongoose);
